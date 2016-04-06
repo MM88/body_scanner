@@ -136,21 +136,9 @@ public:
     run ()
     {
 
-//        boost::shared_ptr<pcl::io::openni2::OpenNI2DeviceManager> deviceManager = pcl::io::openni2::OpenNI2DeviceManager::getInstance ();
-//        if (deviceManager->getNumOfConnectedDevices () > 0)
-//        {
-//            for (unsigned deviceIdx = 0; deviceIdx <2; ++deviceIdx)
-//            {
-//                boost::shared_ptr<pcl::io::openni2::OpenNI2Device> device = deviceManager->getDeviceByIndex (deviceIdx);
-//                cout << "Device " << device->getStringID () << "connected." << endl;
-//            }
-//
-//        }
-
-        //il grabber ha il device id quindi non mi viene altro modo se non instanziarne uno per ogni device
         std::string device_id1 = "#"+boost::lexical_cast<std::string>(1);
 
-        //le kinect 2 hanno 4 devid per ognuna, quindi la seconda è #5, mentre per le v1 la seconda è #2
+        //le kinect 2 hanno 4 dev_id per ognuna, quindi la seconda è #5, mentre per le v1 la seconda è #2
         std::string device_id2 = "#"+boost::lexical_cast<std::string>(2);
 
 
