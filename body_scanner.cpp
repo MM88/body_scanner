@@ -19,6 +19,7 @@ using namespace std;
 #define COLOR pcl::PointXYZRGBA
 #define BW pcl::PointXYZ
 
+
 class OpenNI2Scanner
 {
 public:
@@ -149,14 +150,12 @@ public:
         //il grabber ha il device id quindi non mi viene altro modo se non instanziarne uno per ogni device
         std::string device_id1 = "#"+boost::lexical_cast<std::string>(1);
 
-//      le kinect 2 hanno 4 devid per ognuna, quindi la seconda è #5, mentre per le v1 la seconda è #2
+        //le kinect 2 hanno 4 devid per ognuna, quindi la seconda è #5, mentre per le v1 la seconda è #2
         std::string device_id2 = "#"+boost::lexical_cast<std::string>(2);
 
 
         grabber1_ = new pcl::io::OpenNI2Grabber (device_id1);
         grabber2_ = new pcl::io::OpenNI2Grabber (device_id2);
-//        pcl::io::OpenNI2Grabber grabber2_ (device2_id, depth_mode, image_mode);
-
 
         boost::function<void (const CloudConstPtr&) > cloud1_cb = boost::bind (&OpenNI2Scanner::cloud1_callback, this, _1);
         boost::signals2::connection cloud1_connection = grabber1_->registerCallback (cloud1_cb);
@@ -176,10 +175,7 @@ public:
         cloud1_connection.disconnect ();
         cloud2_connection.disconnect ();
 
-
-
     }
-
 
     CloudConstPtr cloud1_;
     CloudConstPtr cloud2_;
@@ -192,9 +188,8 @@ public:
 
 int main() {
 
-
-    OpenNI2Scanner<pcl::PointXYZ> openni_viewer (1);
-    openni_viewer.run ();
+    OpenNI2Scanner scanner(1);
+    scanner.run ();
 
     return (0);
 }
