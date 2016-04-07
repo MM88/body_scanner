@@ -27,9 +27,7 @@ public:
     typedef pcl::PointCloud<COLOR> Cloud;
     typedef typename Cloud::ConstPtr CloudConstPtr;
 
-    OpenNI2Scanner(unsigned int number)
-    {
-    }
+    OpenNI2Scanner(unsigned int number) { }
 
     void
     cloud1_callback (const CloudConstPtr& cloud)
@@ -141,7 +139,6 @@ public:
         //le kinect 2 hanno 4 dev_id per ognuna, quindi la seconda è #5, mentre per le v1 la seconda è #2
         std::string device_id2 = "#"+boost::lexical_cast<std::string>(2);
 
-
         grabber1_ = new pcl::io::OpenNI2Grabber (device_id1);
         grabber2_ = new pcl::io::OpenNI2Grabber (device_id2);
 
@@ -154,7 +151,9 @@ public:
         activate_kinect1();
         activate_kinect2();
 
+        //ho letto che la kinect 2 ha bisogno di un po di tempo di "warmup"
         boost::this_thread::sleep (boost::posix_time::seconds (5));
+        //potremmo chiamarlo 5 o 10 volte per avere piu informazioni se fa ababstanza veloce
         save_clouds();
 
         deactivate_kinect1();
