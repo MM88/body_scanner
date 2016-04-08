@@ -13,19 +13,41 @@
 #include <pcl-1.8/pcl/filters/voxel_grid.h>
 #include <pcl-1.8/pcl/surface/mls.h>
 
+
+////////////
+#include <boost/make_shared.hpp>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_representation.h>
+
+#include <pcl/io/pcd_io.h>
+
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/filter.h>
+
+#include <pcl/features/normal_3d.h>
+
+#include <pcl/registration/icp.h>
+#include <pcl/registration/icp_nl.h>
+#include <pcl/registration/transforms.h>
+
+#include <pcl/visualization/pcl_visualizer.h>
+
+
 using namespace pcl;
 using namespace std;
 
-#define COLOR pcl::PointXYZRGBA
+#define COLOR pcl::PointXYZ
 #define BW pcl::PointXYZ
 
+typedef pcl::PointCloud<COLOR> Cloud;
+typedef typename Cloud::ConstPtr CloudConstPtr;
 
 class OpenNI2Scanner
 {
 public:
 
-    typedef pcl::PointCloud<COLOR> Cloud;
-    typedef typename Cloud::ConstPtr CloudConstPtr;
+
 
     OpenNI2Scanner(unsigned int number) { }
 
@@ -173,10 +195,48 @@ public:
 
 };
 
+
 int main() {
 
     OpenNI2Scanner scanner(1);
     scanner.run ();
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1 (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2 (new pcl::PointCloud<pcl::PointXYZ>);
+    cout << "cloud alignement" << endl;
+    Cloud::Ptr source (new Cloud);
+    Cloud::Ptr target (new Cloud);
+    Cloud::Ptr final  (new Cloud);
+
+
+    pcl::io::loadPLYFile<COLOR> ("/home/miky/Scrivania/inputCloud11.ply", *source);
+    pcl::io::loadPLYFile<COLOR> ("/home/miky/Scrivania/inputCloud21.ply", *target);
+
+    //parametri da ottimizzare quando si sanno le posizioni relative delle camere
+
+    // use iterative closet point
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputCloud(source);
+    icp.setInputTarget(target);
+    // Set the max correspondence distance to 5cm (0.05)(e.g., correspondences with higher distances will be ignored)
+    icp.setMaxCorrespondenceDistance (0.9);
+    // Set the maximum number of iterations (criterion 1)
+    icp.setMaximumIterations (100);
+    // Set the transformation epsilon (criterion 2)
+    icp.setTransformationEpsilon (1e-6);
+    // Set the euclidean distance difference epsilon (criterion 3)
+    icp.setEuclideanFitnessEpsilon (1);
+    // do the align
+    icp.align(*final);
+
+    // Obtain the transformation that aligned cloud_source to cloud_source_registered
+    Eigen::Matrix4f transformation = icp.getFinalTransformation ();
+
+    cout <<"Saving cloud aligned:"<< endl;
+    std::ostringstream filePath;
+    filePath << "/home/miky/Scrivania/aligned.ply";
+    pcl::io::savePLYFileBinary(filePath.str(), *final);
+
 
     return (0);
 }
