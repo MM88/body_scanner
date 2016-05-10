@@ -32,12 +32,12 @@
 #include <pcl/registration/transforms.h>
 
 #include <pcl/visualization/pcl_visualizer.h>
-
+#include "cloud_utils/cloud_utils.h"
 
 using namespace pcl;
 using namespace std;
 
-#define COLOR pcl::PointXYZ
+#define COLOR pcl::PointXYZRGBA
 #define BW pcl::PointXYZ
 
 typedef pcl::PointCloud<COLOR> Cloud;
@@ -107,7 +107,13 @@ public:
         grabber2_->stop ();
     }
 
-    void save_clouds(){
+    void save_clouds(int cloud_index){
+
+        std::ostringstream cloud1_name;
+        cloud1_name<< "/home/miky/Scrivania/clouds/cloud1_"<<cloud_index<<".ply";
+
+        std::ostringstream cloud2_name;
+        cloud2_name<< "/home/miky/Scrivania/clouds/cloud2_"<<cloud_index<<".ply";
 
         boost::mutex::scoped_lock lock (cloud_mutex_); //cosi non vengono modificate mentre sta salvando
 
@@ -115,9 +121,25 @@ public:
         pcl::PointCloud<COLOR>::Ptr cloudfiltered(new pcl::PointCloud<COLOR>);
         pcl::PassThrough<COLOR> pass ;
         pass.setInputCloud(cloud1_) ;
+//        pass.setFilterFieldName("z" ) ;
+////        pass.setFilterLimits(0.5, 1.5);
+//        pass.setFilterLimits(0.5, 1.0);
+//        pass.filter(*cloudfiltered);
         pass.setFilterFieldName("z" ) ;
-        pass.setFilterLimits(0.5, 1.5);
+        pass.setFilterLimits(0.3, 1.5);
         pass.filter(*cloudfiltered);
+
+        pass.setInputCloud(cloudfiltered) ;
+        pass.setFilterFieldName("x" ) ;
+        pass.setFilterLimits(-0.3, 0.3);
+        pass.filter(*cloudfiltered);
+
+        pass.setInputCloud(cloudfiltered) ;
+        pass.setFilterFieldName("y" ) ;
+        pass.setFilterLimits(-0.5, 0.5);
+        pass.filter(*cloudfiltered);
+
+
         pcl::PointCloud<COLOR>::Ptr cloudfiltered2(new pcl::PointCloud<COLOR>);
         pcl::StatisticalOutlierRemoval<COLOR> sor;
         sor.setInputCloud (cloudfiltered);
@@ -127,16 +149,40 @@ public:
 
         cout << "Clouds saved: " << cloudfiltered2->points.size() << endl;
         cout <<"Saving cloud:"<< endl;
-        std::ostringstream filePath;
-        filePath << "/home/miky/Scrivania/inputCloud1.ply";
-        pcl::io::savePLYFileBinary(filePath.str(), *cloudfiltered2);
+
+        pcl::io::savePLYFileBinary(cloud1_name.str(), *cloudfiltered2);
 
         cout << "Mesh1 saved!" << endl;
 
         pass.setInputCloud(cloud2_) ;
+//        pass.setFilterFieldName("z" ) ;
+//        pass.setFilterLimits(0.5, 1.0);
+//        pass.filter(*cloudfiltered);
         pass.setFilterFieldName("z" ) ;
-        pass.setFilterLimits(0.5, 1.5);
+        pass.setFilterLimits(0.3, 1.5);
         pass.filter(*cloudfiltered);
+
+        pass.setInputCloud(cloudfiltered) ;
+        pass.setFilterFieldName("x" ) ;
+        pass.setFilterLimits(-0.4, 0.4);
+        pass.filter(*cloudfiltered);
+
+        pass.setInputCloud(cloudfiltered) ;
+        pass.setFilterFieldName("y" ) ;
+        pass.setFilterLimits(-0.5, 0.5);
+        pass.filter(*cloudfiltered);
+
+
+//        pass.setInputCloud(cloudfiltered) ;
+//        pass.setFilterFieldName("x" ) ;
+//        pass.setFilterLimits(-0.20, 0.20);
+//        pass.filter(*cloudfiltered);
+
+//        pass.setInputCloud(cloudfiltered) ;
+//        pass.setFilterFieldName("y" ) ;
+//        pass.setFilterLimits(-0.15, 0.50);
+//        pass.filter(*cloudfiltered);
+
         sor.setInputCloud (cloudfiltered);
         sor.setMeanK (50);
         sor.setStddevMulThresh (1.0);
@@ -144,9 +190,8 @@ public:
 
         cout << "Clouds saved: " << cloudfiltered2->points.size() << endl;
         cout <<"Saving cloud:"<< endl;
-        std::ostringstream filePath2;
-        filePath2 << "/home/miky/Scrivania/inputCloud2.ply";
-        pcl::io::savePLYFileBinary(filePath2.str(), *cloudfiltered2);
+
+        pcl::io::savePLYFileBinary(cloud2_name.str(), *cloudfiltered2);
 
         cout << "Mesh2 saved!" << endl;
 
@@ -164,19 +209,26 @@ public:
         grabber1_ = new pcl::io::OpenNI2Grabber (device_id1);
         grabber2_ = new pcl::io::OpenNI2Grabber (device_id2);
 
+
         boost::function<void (const CloudConstPtr&) > cloud1_cb = boost::bind (&OpenNI2Scanner::cloud1_callback, this, _1);
         boost::signals2::connection cloud1_connection = grabber1_->registerCallback (cloud1_cb);
 
         boost::function<void (const CloudConstPtr&) > cloud2_cb = boost::bind (&OpenNI2Scanner::cloud2_callback, this, _1);
         boost::signals2::connection cloud2_connection = grabber2_->registerCallback (cloud2_cb);
 
+//        grabber2_->setDepthCameraIntrinsics(366.006,366.006,258.188,204.534);
+//        grabber2_->setRGBCameraIntrinsics(1081.37,1081.37,959.5,539.5);
+
         activate_kinect1();
         activate_kinect2();
 
         //ho letto che la kinect 2 ha bisogno di un po di tempo di "warmup"
-        boost::this_thread::sleep (boost::posix_time::seconds (5));
+        boost::this_thread::sleep (boost::posix_time::seconds (10));
         //potremmo chiamarlo 5 o 10 volte per avere piu informazioni se fa ababstanza veloce
-        save_clouds();
+
+        for (int i=0;i<1;i++){
+            save_clouds(i);
+        }
 
         deactivate_kinect1();
         deactivate_kinect2();
@@ -186,6 +238,7 @@ public:
 
     }
 
+    const int num_cloud = 5;
     CloudConstPtr cloud1_;
     CloudConstPtr cloud2_;
     pcl::io::OpenNI2Grabber*  grabber1_;
@@ -200,42 +253,6 @@ int main() {
 
     OpenNI2Scanner scanner(1);
     scanner.run ();
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1 (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2 (new pcl::PointCloud<pcl::PointXYZ>);
-    cout << "cloud alignement" << endl;
-    Cloud::Ptr source (new Cloud);
-    Cloud::Ptr target (new Cloud);
-    Cloud::Ptr final  (new Cloud);
-
-
-    pcl::io::loadPLYFile<COLOR> ("/home/miky/Scrivania/inputCloud11.ply", *source);
-    pcl::io::loadPLYFile<COLOR> ("/home/miky/Scrivania/inputCloud21.ply", *target);
-
-    //parametri da ottimizzare quando si sanno le posizioni relative delle camere
-
-    // use iterative closet point
-    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setInputCloud(source);
-    icp.setInputTarget(target);
-    // Set the max correspondence distance to 5cm (0.05)(e.g., correspondences with higher distances will be ignored)
-    icp.setMaxCorrespondenceDistance (0.9);
-    // Set the maximum number of iterations (criterion 1)
-    icp.setMaximumIterations (100);
-    // Set the transformation epsilon (criterion 2)
-    icp.setTransformationEpsilon (1e-6);
-    // Set the euclidean distance difference epsilon (criterion 3)
-    icp.setEuclideanFitnessEpsilon (1);
-    // do the align
-    icp.align(*final);
-
-    // Obtain the transformation that aligned cloud_source to cloud_source_registered
-    Eigen::Matrix4f transformation = icp.getFinalTransformation ();
-
-    cout <<"Saving cloud aligned:"<< endl;
-    std::ostringstream filePath;
-    filePath << "/home/miky/Scrivania/aligned.ply";
-    pcl::io::savePLYFileBinary(filePath.str(), *final);
 
 
     return (0);
